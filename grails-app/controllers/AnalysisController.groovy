@@ -4,6 +4,7 @@ import com.recomdata.export.SnpViewerFiles
 import com.recomdata.genepattern.JobStatus
 import com.recomdata.genepattern.WorkflowStatus
 import grails.converters.JSON
+import groovy.sql.Sql
 import org.codehaus.groovy.grails.plugins.web.taglib.ApplicationTagLib
 import org.genepattern.webservice.JobResult
 import org.genepattern.webservice.WebServiceException
@@ -31,6 +32,7 @@ class AnalysisController {
     def analysisService;
     def snpService;
     def igvService;
+    def vcfExportService;
 
 
     def heatmapvalidate = {
@@ -470,18 +472,139 @@ class AnalysisController {
         }
     }
 
-    def showIgv = {
-        JSONObject result = new JSONObject();
+    def getBaseUrl() {
+        if (grailsApplication.config?.grails?.serverURL) {
+            return grailsApplication.config?.grails?.serverURL
+        }
+
+        String scheme = request.getScheme();
+        String serverName = request.getServerName();
+        int serverPort = (new org.springframework.security.web.PortResolverImpl()).getServerPort(request)
+        String contextPath = request.getContextPath();
+        boolean inHttp = "http".equals(scheme.toLowerCase());
+        boolean inHttps = "https".equals(scheme.toLowerCase());
+
+        boolean includePort = true;
+        if (inHttp && (serverPort == 80)) {
+            includePort = false;
+        } else if (inHttps && (serverPort == 443)) {
+            includePort = false;
+        }
+        return "${scheme}://${serverName}${includePort ? (":" + serverPort) : ""}${contextPath}"
+    }
+
+    def getGenePatternFile = {
+        def fileName = params.file
+        def outputFile = new File(getGenePatternFileDirName(), fileName)
+        if (outputFile.exists()) {
+            outputFile.eachLine {
+                response.outputStream.println(it)
+            }
+            response.outputStream.flush()
+            response.outputStream.close()
+        } else {
+            render status: 404
+        }
+    }
+
+    def showVcf = {
+        JSONObject result=new JSONObject();
 
         def wfstatus = new WorkflowStatus();
-        session["workflowstatus"] = wfstatus;
-        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name: "Initializing Workflow", status: "C"));
-        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name: "Retrieving Data", status: "R"));
+        session["workflowstatus"]= wfstatus;
+        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name:"Initializing Workflow",status:"C"));
+        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name:"Retrieving Data", status:"R"));
         session["workflowstatus"].addNewJob("ConvertLineEndings");
         session["workflowstatus"].addNewJob("IGV");
 
 
-        try {
+        try{
+            log.debug("Received IGV rendering request: " + request);
+
+            String resultInstanceID1 = request.getParameter("result_instance_id1");
+            log.debug("\tresultInstanceID1: " + resultInstanceID1);
+            String resultInstanceID2 = request.getParameter("result_instance_id2");
+            log.debug("\tresultInstanceID2: " + resultInstanceID2);
+
+            String chroms = request.getParameter("chroms");
+            if (chroms == null || chroms.trim().length() == 0) chroms = "ALL";
+            String datasetId = request.getParameter("datasetId");
+
+            if (resultInstanceID1 == "undefined" || resultInstanceID1 == "null" || resultInstanceID1 == "") {
+                log.debug "\tresultInstanceID1 == undefined or null";
+                resultInstanceID1 = null;
+            }
+            if (resultInstanceID2 == "undefined" || resultInstanceID2 == "null" || resultInstanceID2 == "") {
+                log.debug "\tresultInstanceID2 == undefined or null";
+                resultInstanceID2 = null;
+            }
+
+            def al = new AccessLog(username:springSecurityService.getPrincipal().username, event:"DatasetExplorer-ShowIgv", eventmessage:"RID1:"+resultInstanceID1+" RID2:"+resultInstanceID2, accesstime:new java.util.Date())
+            al.save()
+
+            Set<String> sampleCdList = getGetSubjectIdList(resultInstanceID1, resultInstanceID2);
+            if (!sampleCdList.is(null) && sampleCdList.size() == 0) {
+                result.put("error", "No samples found for selected patients")
+                return
+            }
+
+            String newIGVLink = new ApplicationTagLib().createLink(uri: "/genepatternFile.vcf", absolute:true, base: baseUrl)
+            IgvFiles igvFiles = new IgvFiles(getGenePatternFileDirName(), newIGVLink, '.vcf')
+            vcfExportService.storeDataSetToFile(datasetId, sampleCdList, igvFiles.sampleFile);
+
+            JobResult[] jresult;
+
+            /*Run IGV Viewer*/
+            try {
+                String userName = springSecurityService.getPrincipal().username;
+                jresult = genePatternService.createFileForIgvViewer(igvFiles, userName);
+            }
+            catch (WebServiceException e) {
+                log.error(e.getMessage(),e);
+                result.put("error", "WebServiceException: " + e.getMessage());
+                return;
+            }
+
+            int jobNumber = jresult[1].getJobNumber()
+            try {
+                /*hack*/
+                result.put("jobNumber", jobNumber);
+                String viewerURL = genePatternService.getGenePatternRealURLBehindProxy(
+                        grailsApplication.config.com.recomdata.datasetExplorer.genePatternURL +
+                                "/gp/jobResults/" +
+                                jobNumber +
+                                "/igv_job_" +
+                                jobNumber +
+                                ".jnlp?openVisualizers=true&username="+
+                                springSecurityService.getPrincipal().username
+                )
+                //"?";
+                result.put("viewerUrl", viewerURL)
+                log.debug("URL for viewer: " + viewerURL)
+
+                render result.toString()
+            } catch (JSONException e) {
+                log.error("JSON Exception: " + e.getMessage());
+                result.put("error", "JSON Exception: " + e.getMessage());
+            }
+        }finally{
+            session["workflowstatus"].result = result;
+            session["workflowstatus"].setCompleted();
+        }
+    }
+
+    def showIgv = {
+        JSONObject result=new JSONObject();
+
+        def wfstatus = new WorkflowStatus();
+        session["workflowstatus"]= wfstatus;
+        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name:"Initializing Workflow",status:"C"));
+        session["workflowstatus"].setCurrentJobStatus(new JobStatus(name:"Retrieving Data", status:"R"));
+        session["workflowstatus"].addNewJob("ConvertLineEndings");
+        session["workflowstatus"].addNewJob("IGV");
+
+
+        try{
             log.debug("Received IGV rendering request: " + request);
 
             String resultInstanceID1 = request.getParameter("result_instance_id1");
@@ -505,7 +628,7 @@ class AnalysisController {
                 resultInstanceID2 = null;
             }
 
-            def al = new AccessLog(username: springSecurityService.getPrincipal().username, event: "DatasetExplorer-ShowIgv", eventmessage: "RID1:" + resultInstanceID1 + " RID2:" + resultInstanceID2, accesstime: new java.util.Date())
+            def al = new AccessLog(username:springSecurityService.getPrincipal().username, event:"DatasetExplorer-ShowIgv", eventmessage:"RID1:"+resultInstanceID1+" RID2:"+resultInstanceID2, accesstime:new java.util.Date())
             al.save()
 
             String subjectIds1 = i2b2HelperService.getSubjects(resultInstanceID1);
@@ -550,9 +673,10 @@ class AnalysisController {
                 isByPatient = false;
             }
 
-            String newIGVLink = new ApplicationTagLib().createLink(controller: 'analysis', action: 'getGenePatternFile', absolute: true)
 
-            IgvFiles igvFiles = new IgvFiles(getGenePatternFileDirName(), newIGVLink)
+            String newIGVLink =  new ApplicationTagLib().createLink(controller:'analysis', action:'getGenePatternFile', absolute:true)
+
+            IgvFiles igvFiles = new IgvFiles(getGenePatternFileDirName(),newIGVLink)
             StringBuffer geneSnpPageBuf = new StringBuffer();
             try {
                 if (isByPatient)
@@ -571,10 +695,10 @@ class AnalysisController {
 
             try {
                 String userName = springSecurityService.getPrincipal().username;
-                jresult = genePatternService.igvViewer(igvFiles, null, null, userName);
+                jresult = genePatternService.createFileForIgvViewer(igvFiles, userName);
             }
             catch (WebServiceException e) {
-                log.error(e.getMessage(), e);
+                log.error(e.getMessage(),e);
                 result.put("error", "WebServiceException: " + e.getMessage());
                 return;
             }
@@ -592,14 +716,12 @@ class AnalysisController {
                 log.debug("URL for viewer: " + viewerURL)
                 result.put("viewerURL", viewerURL);
 
-                result.put("snpGeneAnnotationPage", geneSnpPageBuf.toString());
-
-                log.debug("result: " + result);
+                render result.toString()
             } catch (JSONException e) {
                 log.error("JSON Exception: " + e.getMessage());
                 result.put("error", "JSON Exception: " + e.getMessage());
             }
-        } finally {
+        }finally{
             session["workflowstatus"].result = result;
             session["workflowstatus"].setCompleted();
         }
@@ -1130,5 +1252,57 @@ class AnalysisController {
         if (webRootName.endsWith(File.separator) == false)
             webRootName += File.separator;
         return webRootName + fileDirName;
+    }
+
+    Set<String> getGetSubjectIdList(String resultInstanceID1, String resultInstanceID2) {
+        if (resultInstanceID1 == "undefined" || resultInstanceID1 == "null" || resultInstanceID1 == "") {
+            log.debug "\tresultInstanceID1 == undefined or null";
+            resultInstanceID1 = null;
+        }
+        if (resultInstanceID2 == "undefined" || resultInstanceID2 == "null" || resultInstanceID2 == "") {
+            log.debug "\tresultInstanceID2 == undefined or null";
+            resultInstanceID2 = null;
+        }
+
+        String subjectIds1 = i2b2HelperService.getSubjects(resultInstanceID1);
+        String subjectIds2 = i2b2HelperService.getSubjects(resultInstanceID2);
+
+        Set<String> patientIds = new HashSet<String>()
+        if (subjectIds1) {
+            patientIds.addAll(subjectIds1.split(','))
+        }
+        if (subjectIds2) {
+            patientIds.addAll(subjectIds2.split(','))
+        }
+
+        if (!patientIds) {
+            println("No subject was selected");
+            return null;
+        }
+
+        Sql sql = new Sql(dataSource)
+        String query="""
+            SELECT sm.SAMPLE_CD
+            FROM
+              DEAPP.DE_SUBJECT_SAMPLE_MAPPING sm, I2B2DEMODATA.patient_dimension pd
+            WHERE sm.PLATFORM=? AND pd.PATIENT_NUM IN (${(['?'] * patientIds.size()).join(',')})
+                AND pd.sourcesystem_cd like '%:' || sm.SUBJECT_ID
+        """;
+        Set<String> sampleCdsSet = new HashSet<String>();
+        sql.eachRow(query, ["VCF"] + patientIds, {row ->
+            sampleCdsSet.add(row.SAMPLE_CD)
+        })
+        return sampleCdsSet;
+    }
+
+    def checkVcf = {
+        def path = request.getParameter("path")
+        path = path.replace("\\\\","");
+        path = path.substring(path.indexOf("\\"), path.length());
+        def datasetId = vcfExportService.getDataSetIdByPath(path)
+        if (datasetId==null)
+            render false
+        else
+            render datasetId.sourcesystem_cd
     }
 }

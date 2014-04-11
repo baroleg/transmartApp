@@ -806,6 +806,30 @@ class GenePatternService implements Job {
         return (toReturn);
     }
 
+    public JobResult[] createFileForIgvViewer(IgvFiles igvFiles, String userName) {
+        // use the URL of this result file as input file to the later tasks and viewers.
+        String sampleFileUrl = igvFiles.getFileUrlWithSecurityToken(igvFiles.getSampleFile(), userName);
+
+        File sessionFile = igvFiles.getSessionFile();
+        sessionFile << "<?xml version='1.0' encoding='UTF-8' standalone='no'?>\n<Session genome='hg19' version='3'>\n<Resources>\n";
+        sessionFile << "<Resource path='" + sampleFileUrl + "'/>\n";
+        sessionFile << "</Resources>\n</Session>";
+
+        String sessionURL = getGPFileConvertUrl(sessionFile);
+
+        Parameter inputURLDataParam = new Parameter("input.file", sessionURL);
+
+        Parameter[] igvProcParameters = new Parameter[1];
+        igvProcParameters[0] = inputURLDataParam;
+
+        JobResult igvResult = runJob(igvProcParameters, "IGV");
+
+        JobResult[] toReturn = new JobResult[2];
+        toReturn[1] = igvResult;
+
+        return (toReturn);
+    }
+
     public JobResult[] igvViewer(IgvFiles igvFiles, String genomeVersion, String locus, String userName)
             throws Exception {
         // The file submitted through web service interface is not accessible to Java Applet-based viewer.

@@ -18,6 +18,7 @@ import java.util.List;
 public class IgvFiles {
     protected File tmpDir;
     protected String fileAccessUrl;
+    protected String extension;
 
     protected File sampleFile;
     protected List<File> dataFileList;
@@ -26,7 +27,12 @@ public class IgvFiles {
     protected File sessionFile;
 
     public IgvFiles(String gpFileDirName, String gpFileAccessUrl) throws java.io.IOException {
+        this(gpFileDirName, gpFileAccessUrl, ".txt");
+    }
+
+    public IgvFiles(String gpFileDirName, String gpFileAccessUrl, String extension) throws java.io.IOException {
         fileAccessUrl = gpFileAccessUrl;
+        this.extension = extension;
         // put files in a directory
         tmpDir = new File(gpFileDirName);
 
@@ -39,7 +45,7 @@ public class IgvFiles {
 
     public File getSampleFile() throws java.io.IOException {
         if (sampleFile == null)
-            sampleFile = File.createTempFile("igv_df_", ".sample.txt", tmpDir);
+            sampleFile = File.createTempFile("gp_df_", ".sample" + extension, tmpDir);
         return this.sampleFile;
     }
 
@@ -78,7 +84,7 @@ public class IgvFiles {
         // The URL in the XML document need to have & escaped by &amp;
         // IGV openSession routine uses the extension of a file or a URL to determine the file type. Put the file name at the end of URL.
         return fileAccessUrl + "?user=" + userName +
-                "&amp;hash=" + URLEncoder.encode(hashStr, "UTF-8") + "&amp;file=" + URLEncoder.encode(file.getName(), "UTF-8");
+            "&amp;hash=" + URLEncoder.encode(hashStr, "UTF-8") + "&amp;file=" + URLEncoder.encode(file.getName(), "UTF-8");
     }
 
     public String getFileUrl(File file) throws Exception {

@@ -807,6 +807,36 @@ Ext.onReady(function () {
 				}
 		);
 
+        vcfPanel = new Ext.Panel(
+            {
+                id : 'vcfPanel',
+                title : 'VCF',
+                region : 'center',
+                split : true,
+                height : 90,
+                layout : 'fit',
+                listeners :
+                {
+                    activate : function(p) {
+                        vcfPanel.load({
+                            url: pageInfo.basePath + "/vcf.gsp",
+                            nocache: true,
+                            timeout: 30,
+                            scripts: true,
+                            callback: function () {
+                                //setupDragAndDropForVCF('vcfPanel');
+                            }
+                        });
+
+                    },
+                    deactivate: function(){
+                        //resultsTabPanel.tools.help.dom.style.display="none";
+                    }
+                },
+                collapsible : true
+            }
+        );
+        resultsTabPanel.add(vcfPanel);
 		exportPanel = new Ext.Panel(
 				{
 					id : 'exportPanel',
@@ -2922,7 +2952,7 @@ function showIgvSelection() {
 		        			  selected.push(ob.options[i].value);
 		        	  GLOBAL.CurrentChroms=selected.join(',');
 		        	  getIgv();
-                    win.close();
+		        	  win.close();
 		          }
             }
             ,
@@ -2955,6 +2985,41 @@ function showIgvSelection() {
 	});
 	//  }
 	win.show(viewport);
+}
+
+function getVcf() {
+    if((!isSubsetEmpty(1) && GLOBAL.CurrentSubsetIDs[1] == null) ||
+        (!isSubsetEmpty(2) && GLOBAL.CurrentSubsetIDs[2] == null))
+    {
+        runAllQueries(getVcf);
+        return;
+    }
+
+    // before Ajax call, log into genepattern:
+    genePatternLogin();
+
+    //genePatternReplacement();
+    Ext.Ajax.request(
+        {
+            url: pageInfo.basePath + "/analysis/showVcf",
+            method: 'GET',
+            success: function(result, request){
+                Ext.MessageBox.alert('IGV result', 'Please, download file: <a href=\"' + Ext.util.JSON.decode(result.responseText).viewerUrl+ '\">'+ Ext.util.JSON.decode(result.responseText).viewerUrl+'</a>', function(){});
+                //getSNPViewerComplete(result);
+            },
+            failure: function(result, request){
+                Ext.MessageBox.alert('IGV result', 'Error was encountered by running VCF viewer');
+            },
+            timeout: '1800000',
+            params: {
+                result_instance_id1:  GLOBAL.CurrentSubsetIDs[1],
+                result_instance_id2:  GLOBAL.CurrentSubsetIDs[2],
+                chroms: GLOBAL.CurrentChroms,
+                datasetId: GLOBAL.datasetID
+            }
+        });
+
+    showWorkflowStatusWindow();
 }
 
 function getIgv() {
@@ -3003,7 +3068,6 @@ function getIgv() {
 	
 	showWorkflowStatusWindow();
 }
-
 
 function showPlinkSelection() {
 	
@@ -4043,4 +4107,92 @@ function contains(a, obj) {
         }
     }
     return false;
+}
+
+function setupDragAndDropForVCF(elementID) {
+    var qcd = Ext.get(elementID);
+
+    dts = new Ext.dd.DropTarget(qcd,
+        {
+            ddGroup: 'makeQuery'
+        }
+    );
+
+    dts.notifyDrop = function (source, e, data) {
+        var concept = null;
+        var conceptPath = data.node.attributes.id;
+        var checkVCFType = true;    /*Checker here*/
+        var panel = this.el;
+        var concept = convertNodeToConcept(data.node);
+        Ext.Ajax.request(
+            {
+                url : pageInfo.basePath+"/analysis/checkVcf",
+                method : 'POST',
+                success : function(result, request)
+                {
+                    if (result.responseText == "false"){
+                        Ext.window.alert('Only VCF data is allowed!');
+                        return false;
+                    }
+                    else
+                    {
+                        if (Ext.get(panel).dom.childNodes.length == 0) {
+                            concept = createNewItemVCF(panel, concept);
+                            GLOBAL.datasetID = result.responseText;
+                            return true;
+                        } else {
+                            Ext.MessageBox.alert('Warning!l','VCF data is selected.<br>You can use only one node!');
+                            return false;
+                        }
+                    }
+                }
+                ,
+                failure : function(result, request)
+                {
+                    Ext.MessageBox.alert('Only VCF data is allowed!', function(){});
+                    return false;
+                }
+                ,
+                timeout : '600000',
+                params : Ext.urlEncode(
+                    {
+                        path : conceptPath
+                    }
+                )
+            }
+        );
+    }
+}
+
+function clearGroupVCF(divId) {
+    //clar the div
+    var qc=Ext.get(divId);
+    for(var i=qc.dom.childNodes.length-1;i>=0;i--)
+    {
+        var child=qc.dom.childNodes[i];
+        qc.dom.removeChild(child);
+    }
+
+}
+
+function createNewItemVCF(panel, concept) {
+    //Create a shortname
+    var splits = concept.tooltip.split("\\");
+    var shortname = "";
+    if (splits.length > 1) {
+        shortname = "...\\" + splits[splits.length - 2] + "\\" + splits[splits.length - 1];
+    }
+    else {
+        shortname = splits[splits.length - 1];
+    }
+
+    var li = document.createElement('div');
+    //Create the node
+    var text = document.createTextNode(shortname);
+    li.appendChild(text);
+    panel.appendChild(li);
+}
+
+function submitVCF(formData) {
+    getVcf();
 }

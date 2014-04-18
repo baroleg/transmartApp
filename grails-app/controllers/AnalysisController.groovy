@@ -153,7 +153,7 @@ class AnalysisController {
         String samples = request.getParameter("SAMPLES");
         def ci = new CohortInformation();
         ci.platforms.add(platform);
-        if ((rbmpanels != null) && (rbmpanels.length() > 0))
+        if ((rbmpanels != null) && (rbmpanels!='null') && (rbmpanels.length() > 0))
             ci.rbmpanels.addAll(Arrays.asList(rbmpanels.split(',')));
         if (trial != null)
             ci.trials.addAll(Arrays.asList(trial.split(',')));

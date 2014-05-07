@@ -85,6 +85,9 @@ class ClinicalDataService {
 
             if (retrievalTypeMRNAExists && null != filesDoneMap['MRNA.TXT'] && filesDoneMap['MRNA.TXT']) {
                 sqlQuery <<= "LEFT JOIN DE_SUBJECT_SAMPLE_MAPPING ssm ON ssm.PATIENT_ID = ofa.PATIENT_NUM  "
+                if (platformsList) {
+                    sqlQuery <<= " AND ssm.GPL_ID IN (" << utilService.toListString(platformsList) << ") "
+                }
             }
 
             sqlQuery <<= "WHERE qt.RESULT_INSTANCE_ID = ?"
@@ -96,10 +99,6 @@ class ClinicalDataService {
                 sqlQuery <<= " FROM de_subject_sample_mapping WHERE trial_name = ?"
                 sqlQuery <<= " UNION SELECT DISTINCT coalesce(platform_cd,'-1') as gene_expr_concept "
                 sqlQuery <<= " FROM de_subject_sample_mapping WHERE trial_name = ?)"
-            }
-
-            if (retrievalTypeMRNAExists && null != filesDoneMap && filesDoneMap['MRNA.TXT'] && !platformsList?.isEmpty()) {
-                sqlQuery <<= " AND ssm.GPL_ID IN (" << utilService.toListString(platformsList) << ") "
             }
 
             //If we have a list of concepts, add them to the query.

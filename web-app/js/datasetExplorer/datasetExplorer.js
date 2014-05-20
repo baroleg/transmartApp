@@ -819,7 +819,7 @@ Ext.onReady(function () {
                 {
                     activate : function(p) {
                         vcfPanel.load({
-                            url: pageInfo.basePath + "/vcf.gsp",
+                            url: pageInfo.basePath + "/analysis/vcf",
                             nocache: true,
                             timeout: 30,
                             scripts: true,
@@ -4131,7 +4131,7 @@ function setupDragAndDropForVCF(elementID) {
                 success : function(result, request)
                 {
                     if (result.responseText == "false"){
-                        Ext.window.alert('Only VCF data is allowed!');
+                        Ext.MessageBox.alert('Only VCF data is allowed!');
                         return false;
                     }
                     else

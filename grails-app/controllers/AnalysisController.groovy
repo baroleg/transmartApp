@@ -507,6 +507,9 @@ class AnalysisController {
         }
     }
 
+    def vcf = {
+    }
+
     def showVcf = {
         JSONObject result=new JSONObject();
 

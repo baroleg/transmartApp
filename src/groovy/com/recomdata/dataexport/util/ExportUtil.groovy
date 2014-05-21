@@ -6,22 +6,10 @@ class ExportUtil {
 
     public static String getShortConceptPath(String conceptPath, removalArr) {
         def arr = StringUtils.split(conceptPath, "\\")
-        def valList = []
-        //Remove upto Study-name and any string values specified in the removalArr
-        if (arr.length > 2) arr.eachWithIndex { val, i ->
-            def valShouldBeRemoved = false
-            removalArr.each { removalVal ->
-                if (StringUtils.equalsIgnoreCase(removalVal, val)) {
-                    valShouldBeRemoved = true
-                    return
-                }
-            }
-
-            if (i > 1 && !valShouldBeRemoved) {
-                valList.add(val)
-            } else if (valShouldBeRemoved) {
-                arr[i] = ''
-            }
+        //Remove upto Study-name and any tailing string values specified in the removalArr
+        def valList = arr.toList()[1..-1]
+        while (valList.size() > 0 && removalArr.any { it.equalsIgnoreCase(valList[-1]) }) {
+            valList.remove(valList.size() - 1);
         }
 
         def shortenedConceptPath = StringUtils.join(valList, '\\')

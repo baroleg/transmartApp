@@ -135,7 +135,7 @@ class ExportService {
             //Split the item by "_" to get the different attributes.
             // Attributes are: <subset_id>_<datatype>_<exportformat>_<platform>
             // e.g. subset1_mrna_TSV_GPL570
-            String[] checkboxItemArray = StringUtils.split(checkboxItem, "_")
+            String[] checkboxItemArray = StringUtils.split(checkboxItem, "_", 4)
 
             //The first item is the subset name.
             def currentSubset = checkboxItemArray[0].trim().replace(" ", "")

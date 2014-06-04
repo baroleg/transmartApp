@@ -197,6 +197,7 @@ class ClinicalDataService {
                     if (removalArr.size() == 1 && row.VALUE?.toString().equalsIgnoreCase('E')) {
                         removalArr.add(row.NAME_CHAR?.toString())
                     }
+                    removalArr.removeAll { it == null }
                     values.add(ExportUtil.getShortConceptPath(row.CONCEPT_PATH, removalArr))
 
                     if (retrievalTypeExists("MRNA", retrievalTypes)) {

@@ -5006,7 +5006,7 @@ class I2b2HelperService {
     /**
      * Gets the children with access for a concept
      */
-    def getChildrenWithAccessForUserNew(String concept_key, AuthUser user) {
+    def getChildrenWithAccessForUserNew(String concept_key, user) {
         def children = getChildPathsWithTokensFromParentKey(concept_key);
         return getAccess(children, user);
     }

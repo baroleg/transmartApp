@@ -5,6 +5,7 @@ import grails.converters.JSON
  */
 class ConceptsSecuryController {
     def conceptsResourceService
+    def i2b2HelperService
 
     def getCategories() {
         render conceptsResourceService.allCategories as JSON
@@ -18,26 +19,27 @@ class ConceptsSecuryController {
         def parent = conceptsResourceService.getByKey(parentConceptKey)
         def children = parent.children
         def user = springSecurityService.getPrincipal()
-        def userid = user?.id
+        def accession = children*.sourcesystemCd
 
-        groovy.sql.Sql sql = new groovy.sql.Sql(dataSource)
-        def accessionSQLSet = sql.rows("select \n" +
-                "be.accession " +
-                "from \n" +
-                "searchapp.search_auth_sec_object_access sasoa,\n" +
-                "searchapp.search_sec_access_level ssal,\n" +
-                "searchapp.search_secure_object sso,\n" +
-                "biomart.bio_experiment be\n" +
-                "where\n" +
-                "ssal.access_level_value > 0\n" +
-                "and sasoa.secure_access_level_id = ssal.search_sec_access_level_id\n" +
-                "and (sasoa.auth_principal_id = ? or\n" +
-                "sasoa.auth_principal_id in ( " +
-                "select sagm.auth_group_id from searchapp.search_auth_group_member sagm where sagm.auth_user_id = ?))" +
-                "and sasoa.secure_object_id = sso.search_secure_object_id\n" +
-                "and sso.bio_data_id = be.bio_experiment_id", userid, userid)
-
-        def accession = accessionSQLSet.accession
+        if(!i2b2HelperService.isAdmin(user)) {
+            def userid = user?.id
+            groovy.sql.Sql sql = new groovy.sql.Sql(dataSource)
+            def accessionSQLSet = sql.rows("select \n" +
+                    "be.accession " +
+                    "from \n" +
+                    "searchapp.search_auth_sec_object_access sasoa,\n" +
+                    "searchapp.search_sec_access_level ssal,\n" +
+                    "searchapp.search_secure_object sso,\n" +
+                    "biomart.bio_experiment be\n" +
+                    "where\n" +
+                    "ssal.access_level_value > 0\n" +
+                    "and sasoa.secure_access_level_id = ssal.search_sec_access_level_id\n" +
+                    "and (sasoa.auth_principal_id = ? or\n" +
+                    "sasoa.auth_principal_id in ( " +
+                    "select sagm.auth_group_id from searchapp.search_auth_group_member sagm where sagm.auth_user_id = ?))" +
+                    "and sasoa.secure_object_id = sso.search_secure_object_id\n" +
+                    "and sso.bio_data_id = be.bio_experiment_id", userid, userid)
+        }
 
         children = children.findAll {
             accession.contains(it.sourcesystemCd)

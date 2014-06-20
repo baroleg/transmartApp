@@ -84,13 +84,13 @@ class GeneSignatureController {
         def myItems = []
         def pubItems = []
 
-        signatures.each {
-            if (user.id == it.createdByAuthUser.id) {
-                myItems.add(it)
-            } else {
-                pubItems.add(it)
-            }
-        }
+		signatures.each {
+			if(user.id==it.createdByAuthUser?.id) {
+				myItems.add(it)
+			} else {
+				pubItems.add(it)
+			}
+		}
 
         render(view: "list", model: [user: user, adminFlag: bAdmin, myItems: myItems, pubItems: pubItems, ctMap: ctMap])
     }

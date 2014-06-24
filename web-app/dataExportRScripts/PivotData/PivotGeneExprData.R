@@ -72,7 +72,8 @@ fileName
 {
 	print("SUBSESSTING DATA")
 	#Remove the PROBESET.ID, LOG2ED and ZSCORE column from the data.
-	dataFile <- subset(dataToPivot, select=-c(PROBESET.ID,LOG2ED,GENE_ID,GENE_SYMBOL))
+	dataFile <- subset(dataToPivot, delete=c(PROBESET.ID,LOG2ED,GENE_ID,GENE_SYMBOL))
+	dataFile$VALUE <- as.numeric(as.vector(dataFile$VALUE))
 	
 	print("MELTING DATA")
 	#Melt the data, leaving the 4 id columns.

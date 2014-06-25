@@ -23,6 +23,8 @@ class ExportService {
     def jobResultsService
     def asyncJobService
     def quartzScheduler
+    def grailsApplication
+    def dataExportService
 
     @Resource(name = CurrentUserBeanProxyFactory.BEAN_BAME)
     def currentUser
@@ -194,6 +196,14 @@ class ExportService {
 
         //This adds a step to the job to create a file link as the plugin output.
         jdm.put("renderSteps", ["FILELINK": ""]);
+        // TODO -- NEED TO BE REVIEWED (f.guitton@imperial.ac.uk)
+
+        jdm.put("SGA", grailsApplication);
+        jdm.put("SAJS", asyncJobService);
+        jdm.put("SJRS", jobResultsService);
+        jdm.put("SDES", dataExportService);
+
+        // --
 
         jdm.put("userInContext", currentUser.targetSource.target)
 

@@ -157,7 +157,8 @@
             currentSubsetsStudy: '',
             isGridViewLoaded: false,
             galaxyEnabled: '${grailsApplication.config.com.galaxy.blend4j.galaxyEnabled}',
-            galaxyUrl: "${grailsApplication.config.com.galaxy.blend4j.galaxyURL}"
+            galaxyUrl: "${grailsApplication.config.com.galaxy.blend4j.galaxyURL}",
+            summaryReportEnabled: '${grailsApplication.config.com.thomsonreuters.transmart.summaryReportEnabled}'
         };
         // initialize browser version variables; see http://www.quirksmode.org/js/detect.html
         BrowserDetect.init();

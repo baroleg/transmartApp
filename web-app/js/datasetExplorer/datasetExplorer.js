@@ -791,6 +791,11 @@ Ext.onReady(function () {
                     loadMetaCoreEnrichment(resultsTabPanel);
                 });
             }
+            if (GLOBAL.summaryReportEnabled){
+                loadPlugin('summarystatisticsreport', "/SummaryStatReports/loadScripts", function () {
+                    loadSummaryStatisticsReport(resultsTabPanel);
+                });
+            }
         });
 
         if (GLOBAL.galaxyEnabled == 'true') {

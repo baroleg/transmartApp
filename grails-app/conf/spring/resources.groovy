@@ -116,6 +116,7 @@ beans = {
             inheritPassword = transmartSecurity.ldap.inheritPassword
             // can be 'username' or 'federatedId'
             mappedUsernameProperty = transmartSecurity.ldap.mappedUsernameProperty
+            doNotCreateUsers = transmartSecurity.ldap.doNotCreateUsers
         }
 
         if (grailsApplication.config.org.transmart.security.ldap.ad.domain) {

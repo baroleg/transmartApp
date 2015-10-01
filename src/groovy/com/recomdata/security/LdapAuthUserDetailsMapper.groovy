@@ -12,6 +12,7 @@ import org.springframework.util.Assert
 import org.transmart.searchapp.AccessLog
 import org.transmart.searchapp.AuthUser
 import org.transmart.searchapp.Role
+import org.springframework.context.ApplicationContext
 
 /**
  * User: Florian Guitton
@@ -28,6 +29,7 @@ public class LdapAuthUserDetailsMapper implements UserDetailsContextMapper {
     String newUsernamePattern
     // List of roles assigned to new user
     List<String> defaultAuthorities
+    def doNotCreateUsers = false
 
     private final Log logger = LogFactory.getLog(LdapAuthUserDetailsMapper.class);
     private String passwordAttributeName = "userPassword";
@@ -76,6 +78,9 @@ public class LdapAuthUserDetailsMapper implements UserDetailsContextMapper {
         def created = !user.id
         def willGenerateUsername = false
         if (created) {
+            if (doNotCreateUsers) {
+                return null
+            }
             user.emailShow = true
             user.enabled = true
             if (mappedUsernameProperty != 'username') {

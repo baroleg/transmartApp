@@ -115,8 +115,8 @@ public class FederatedUserDetailsService implements SAMLUserDetailsService {
 
             if (attributeConfig.newUserAuthorities) {
                 // if new user authorities specified then replace default authorities
-                newUser.authorities.collect{}.each { newUser.removeFromAuthorities(it) }
-                Role.findAllByAuthorityInList(attributeConfig.newUserAuthorities).each { user.addToAuthorities(it) }
+                newUser.authorities.findAll().each { newUser.removeFromAuthorities(it) }
+                Role.findAllByAuthorityInList(attributeConfig.newUserAuthorities).each { newUser.addToAuthorities(it) }
             }
 
             def outcome = newUser.save(flush: true)

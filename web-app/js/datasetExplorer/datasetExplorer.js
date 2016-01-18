@@ -740,11 +740,11 @@ Ext.onReady(function () {
 
         function loadResources(resources, bootstrap) {
             var scripts = [];
-            for (var i = 0; i < resources.length; i++) {
+            for (var i = 0, iLength = resources.length; i < iLength; i++) {
                 var aFile = resources[i];
-                if (aFile.type == 'script') {
+                if (aFile.type === 'script') {
                     scripts.push(aFile.path);
-                } else if (aFile.type == 'stylesheet') {
+                } else if (aFile.type === 'stylesheet') {
                     dynamicLoad.loadCSS(aFile.path);
                 }
             }
@@ -758,7 +758,7 @@ Ext.onReady(function () {
         function loadResourcesByUrl(url, bootstrap) {
             return jQuery.post(url, function(data) {
                 if (data.success) {
-                    loadResources(data.files, bootstrap)
+                    loadResources(data.files, bootstrap);
                 }
             }, "json").fail(function() {
                 console.error("Cannot load resources for " + url);
@@ -767,17 +767,37 @@ Ext.onReady(function () {
 
         function loadPlugin(pluginName, scriptsUrl, bootstrap) {
             var def = jQuery.Deferred();
-            jQuery.post(pageInfo.basePath + "/pluginDetector/checkPlugin", {pluginName: pluginName}, function(data) {
-                if (data === 'true') {
-                    loadResourcesByUrl(pageInfo.basePath + scriptsUrl, function() {
-                        bootstrap();
-                        def.resolve();
-                    }).fail(def.reject);
-                } else {
-                    def.reject();
-                }
-            }).fail(def.reject);
+            var loadResources = function () {
+                loadResourcesByUrl(pageInfo.basePath + scriptsUrl, function() {
+                    bootstrap();
+                    def.resolve();
+                }).fail(def.reject);
+            };
+            if (pluginName) {
+                jQuery.post(pageInfo.basePath + "/pluginDetector/checkPlugin", {pluginName: pluginName}, function (data) {
+                    if (data === 'true') {
+                        loadResources();
+                    } else {
+                        def.reject();
+                    }
+                }).fail(def.reject);
+            } else {
+                loadResources();
+            }
+
             return def;
+        }
+
+        function loadAnalysisTabExtensions(currentIndex) {
+            if (currentIndex >= GLOBAL.analysisTabExtensions.length) {
+                return;
+            }
+            var tabExtension = GLOBAL.analysisTabExtensions[currentIndex];
+            loadPlugin(null, tabExtension.resourcesUrl, function () {
+                (window[tabExtension.bootstrapFunction])(resultsTabPanel, tabExtension.config);
+            }).always(function () {
+                loadAnalysisTabExtensions(currentIndex + 1);
+            });
         }
 
         // DALLIANCE
@@ -789,12 +809,11 @@ Ext.onReady(function () {
             if (GLOBAL.metacoreAnalyticsEnabled) {
                 loadPlugin('transmart-metacore-plugin', "/MetacoreEnrichment/loadScripts", function () {
                     loadMetaCoreEnrichment(resultsTabPanel);
+                }).always(function () {
+                    loadAnalysisTabExtensions(0);
                 });
-            }
-            if (GLOBAL.summaryReportEnabled){
-                loadPlugin('summarystatisticsreport', "/SummaryStatReports/loadScripts", function () {
-                    loadSummaryStatisticsReport(resultsTabPanel);
-                });
+            } else {
+                loadAnalysisTabExtensions(0);
             }
         });
 

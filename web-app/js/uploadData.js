@@ -274,7 +274,7 @@ function downloadTemplate() {
 function applyStudyBrowse() {
       //Loop through all the selected items.
       jQuery(".studyBrowseRow.selected").each(function(i, selected){
-    	  var studyId = $j(this).attr('name');
+    	  var studyId = $j(this).attr('id');
     	  var studyName = $j('#studyBrowseName' + studyId).text();
     	  $j('#study-input').val(studyName).attr('disabled', 'disabled');
     	  $j('#study').val(studyId);

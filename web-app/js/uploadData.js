@@ -440,7 +440,7 @@ jQuery(document).ready(function() {
         }
         else {
             if (jQuery(this).attr('id') == 'uploadFileDatasetExplorerRadio') {
-                UPLOAD_STUDY_TYPE = 'i2b2';
+                UPLOAD_STUDY_TYPE = 'i2b2,Experiment';     // added Experiment for support study that uploaded by tmdataloader
                 jQuery('.dataFormTitle').text("Upload File to Dataset Explorer");
             }
             else if (jQuery(this).attr('id') == 'uploadFileRadio') {

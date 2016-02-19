@@ -37,7 +37,7 @@ class ExperimentController {
         def experiments
 
         if (params.type) {
-            experiments = Experiment.findAllByTypeOrType(params.type,'Experiment')
+            experiments = Experiment.findAllByTypeInList((List)params.type.split(','))
             experiments = getSortedList(experiments)
         } else {
             experiments = Experiment.list()

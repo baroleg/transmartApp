@@ -2006,6 +2006,25 @@ function ontologyRightClick(eventNode, event) {
 	return false;
 }
 
+function fileRightClick(eventNode, event) {
+    if (!this.contextMenuOntology) {
+        this.contextMenuOntology = new Ext.menu.Menu({
+            id: 'contextMenuOntology',
+            items: [
+                {
+                    text: 'Download File', handler: function () {
+                    var fileId = Ext.decode(eventNode.attributes.metadata).fileId;
+                    window.open(pageInfo.basePath + '/fileExport/exportFile/1992455');
+                }
+                }
+            ]
+        });
+    }
+    var xy = event.getXY();
+    this.contextMenuOntology.showAt(xy);
+    return false;
+}
+
 function previousQueriesRightClick(eventNode, event) {
     if (!this.contextMenuPreviousQueries) {
 		this.contextMenuPreviousQueries = new Ext.menu.Menu(

@@ -1973,7 +1973,8 @@ function getTreeNodeFromJsonNode(concept)
     }
 
 	if (visualattributes.indexOf('FILE') != '-1') {
-        iconCls="fileicon txt";
+		var jObj = Ext.decode(metadata)
+        iconCls="fileicon " + jObj.fileType;
 		leaf = true;
 		draggable=false;
     }

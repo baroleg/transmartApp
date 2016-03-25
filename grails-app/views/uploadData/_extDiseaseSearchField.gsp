@@ -76,7 +76,7 @@ jQuery(document).ready(function() {
 });
 </g:javascript>
 <%-- Tag box (visual display of tags) --%>
-<div id="${fieldName}-tags" class="tagBox">
+<div id="${fieldName}-tags" class="tagBox" name="${fieldName}">
 </div>
 
 <%-- Hidden select field, keeps actual selected values --%>

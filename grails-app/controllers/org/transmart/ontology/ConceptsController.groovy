@@ -49,7 +49,7 @@ class ConceptsController {
                             name: it.displayName,
                             tooltip: parent.tooltip + 'Files\\' + it.displayName,
                             visualAttributes: ["FILE", "ACTIVE"],
-                            metadata: "{fileId: ${it.id}}",
+                            metadata: "{fileId: ${it.id}, fileType: '${it.fileType}'}",
                             dimensionCode: parent.dimensionCode + 'Files\\' + it.displayName,
                             dimensionTableName: "FILE"
                     ))

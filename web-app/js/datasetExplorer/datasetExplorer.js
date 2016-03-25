@@ -2014,7 +2014,7 @@ function fileRightClick(eventNode, event) {
                 {
                     text: 'Download File', handler: function () {
                     var fileId = Ext.decode(eventNode.attributes.metadata).fileId;
-                    window.open(pageInfo.basePath + '/fileExport/exportFile/1992455');
+                    window.open(pageInfo.basePath + '/fileExport/exportFile/' + fileId);
                 }
                 }
             ]
